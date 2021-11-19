@@ -1,20 +1,22 @@
 package main
 
-import data.label_validation
-
-module_address[i] = address {
-    changeset := input.resource_changes[i]
-    address := changeset.address
-}
-
-labels_contain_minimum_set[i] = resources {
-    changeset := input.resource_changes[i]
-    labels := changeset.change.after.labels
-    resources := [resource | resource := module_address[i]; not label_validation.labels_contain_proper_keys(changeset.change.after.labels)]
-}
-
 deny[msg] {
-    resources := labels_contain_minimum_set[_]
-    resources != []
-    msg := sprintf("Missing required labels for the following resources: %v", [resources])
+	changeset := input.resource_changes[_]
+    is_create_or_update(changeset.change.actions)
+    
+    confidential_resources := [resource_to_check | changeset.change.after.labels.dataclassification == "confidential"; resource_to_check := changeset]
+    kms_enabled_resources := [output | confidential_resources[_].change.after.kms_key_name; output := confidential_resources[_]]
+    outputs := [output | kms_enabled_resources[_].change.after.kms_key_name == null; output := kms_enabled_resources[_].address]
+    outputs != []
+    
+    banned := concat(", ", outputs)
+	msg := sprintf("Data marked as confidential must be protected with CMEK: %v", [banned])
+}
+
+is_create_or_update(actions) {
+	actions[_] == "create"
+}
+
+is_create_or_update(actions) {
+	actions[_] == "update"
 }
