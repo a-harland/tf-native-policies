@@ -20,7 +20,7 @@ deny[msg] {
     confidential_resources != []
     
     banned := concat(", ", kms_enabled_resources)
-	msg := sprintf("Only approved IAM permissions are permitted. The following resources use unapproved IAM permissions. Only the following roles are allowed %v", [allow_list])
+    msg := sprintf("Only approved IAM permissions are permitted. The following resources use unapproved IAM permissions %v. Only the following roles are allowed %v", [banned, allow_list])
 }
 
 is_project_iam_type(resource) {
