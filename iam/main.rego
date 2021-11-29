@@ -15,12 +15,12 @@ deny[msg] {
 	changeset := input.resource_changes[_]
     is_create_or_update(changeset.change.actions)
     
-    confidential_resources := [resource_to_check | is_project_iam_type(changeset.type) ; resource_to_check := changeset]
-    kms_enabled_resources := [output | not contains(confidential_resources[i].change.after.role, allow_list[i]); output := confidential_resources[i].address]
-    kms_enabled_resources != []
+    iam_resources := [resource_to_check | is_project_iam_type(changeset.type) ; resource_to_check := changeset]
+    iam_failures := [output | not contains(iam_resources[i].change.after.role, allow_list[i]); output := iam_resources[i].address]
+    iam_failures != []
     
-    banned := concat(", ", kms_enabled_resources)
-    msg := sprintf("Only approved IAM permissions are permitted. The following resources use unapproved IAM permissions %v. Only the following roles are allowed %v", [banned, allow_list])
+    banned := concat(", ", iam_failures)
+	msg := sprintf("Only approved IAM permissions are permitted. The following resources use unapproved IAM permissions. Only the following roles are allowed %v", [allow_list])
 }
 
 is_project_iam_type(resource) {
@@ -34,4 +34,3 @@ is_create_or_update(actions) {
 is_create_or_update(actions) {
 	actions[_] == "update"
 }
-
